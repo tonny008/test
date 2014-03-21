@@ -1,0 +1,150 @@
+﻿@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+<head>
+    <title>Box plot</title>
+    <style>
+        body {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+        }
+
+        .box {
+            font: 10px sans-serif;
+        }
+
+            .box line,
+            .box rect,
+            .box circle {
+                fill: #fff;
+                stroke: #000;
+                stroke-width: 1.5px;
+            }
+
+            .box .center {
+                stroke-dasharray: 3,3;
+            }
+
+            .box .outlier {
+                fill: none;
+                stroke: #ccc;
+            }
+
+        .axis text {
+            font: 10px sans-serif;
+        }
+
+        .axis path,
+        .axis line {
+            fill: none;
+            stroke: #000;
+            shape-rendering: crispEdges;
+        }
+    </style>
+</head>
+<body>
+    <svg class="boxplot" height="400"></svg>
+    <script type="text/javascript" src="@Url.Content("~/Scripts/d3.v3.min.js")"></script>
+    <script type="text/javascript" src="@Url.Content("~/Scripts/box.js")"></script>
+    <script type="text/javascript" src="@Url.Content("~/Scripts/flot/jquery.js")"></script>
+    <script>
+
+        var margin = { top: 10, right: 40, bottom: 20, left: 40 },
+            width = 100 - margin.left - margin.right,
+            height = 400 - margin.top - margin.bottom;
+
+        var min = Infinity,
+            max = -Infinity;
+
+        var chart = d3.box()
+            .whiskers(iqr(1.5))
+            .width(width)
+            .height(height)
+            .tickFormat(function (f) { return f.toFixed(2);});
+
+        var ind = [];
+        fetchData();
+        setInterval(
+            fetchData
+        , 2000);
+
+        function fetchData() {
+            $.getJSON("@Url.Content("~/api/BoxPlot")").done(function (res) {
+                var data = [];
+                for (var i = 0; i < res.length; i++) {
+                    var vpp = res[i][2],
+                     tester = res[i][1],
+                        lot = res[i][0],
+                        key = lot + "." + tester,
+                         id = ind.indexOf(key);
+                    if (id === -1) {
+                        id = ind.push(key) - 1;
+                    }
+                    var d = data[id];
+                    if (!d) {
+                        d = data[id] = [vpp];
+                    }
+                    else d.push(vpp);
+                    if (vpp > max) max = vpp;
+                    if (vpp < min) min = vpp;
+                }
+                chart.domain([min, max]);
+                var yScale = d3.scale.linear()
+                    .range([height, 0])
+                    .domain([min, max]);
+                var yAxis = d3.svg.axis()
+                    .scale(yScale)
+                    .orient("left");
+                var svg = d3.select("svg.boxplot");
+                //svg.append("g")
+                //    .attr("class", "y axis")
+                //    .call(yAxis);
+                svg.selectAll("g.box")
+                    .data(data).call(chart.duration(1000));
+                svg.selectAll("g.box")
+                    .data(data)
+                  .enter()
+                    .append("g")
+                    .attr("class", "box")
+                    .attr("transform", function (d, i) { return "translate(" + (100 * i + margin.left) + "," + margin.top + ")" })
+                    .call(chart)
+                    .append("text")
+                    .attr("class", "label").attr("x", -30).attr("y", height + 20)
+                    .text(function (d, i) { return ind[i]; });
+                svg.selectAll("g")
+                   .data(data).exit().remove();
+            });
+        }
+
+        function randomize(d) {
+            if (!d.randomizer) d.randomizer = randomizer(d);
+            return d.map(d.randomizer);
+        }
+
+        function randomizer(d) {
+            var k = d3.max(d) * .02;
+            return function (d) {
+                return Math.max(min, Math.min(max, d + k * (Math.random() - .5)));
+            };
+        }
+
+        // Returns a function to compute the interquartile range.
+        function iqr(k) {
+            return function (d, i) {
+                var q1 = d.quartiles[0],
+                    q3 = d.quartiles[2],
+                    iqr = (q3 - q1) * k,
+                    i = -1,
+                    j = d.length;
+                while (d[++i] < q1 - iqr);
+                while (d[--j] > q3 + iqr);
+                return [i, j];
+            };
+        }
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,415 @@
+﻿@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <meta http-equiv="X-UA-Compatible" content="chrome=1, IE=edge">
+    <title></title>
+    <style type="text/css">
+        select {
+            width: 200px;
+            margin-left: 15px;
+            background-color: transparent;
+            border: 0;
+            font-size: large;
+            height: 50px;
+            vertical-align: middle;
+            line-height: 50px;
+        }
+
+        h2 {
+            margin-left: 30px;
+        }
+
+        #wafer, #lot {
+            border-collapse: collapse;
+            border-spacing: 0;
+            background: #f6f6f6;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+        }
+
+            #wafer td, #lot td {
+                border: 1px solid white;
+                font: xx-small Arial;
+                margin: 0;
+                padding: 0;
+                text-align: center;
+            }
+
+        td.color1 {
+            background: gray;
+        }
+
+        td.color2 {
+            background: green;
+        }
+
+        td.color3 {
+            background: red;
+        }
+
+        td.color4 {
+            background: lightgreen;
+        }
+
+        td.color5 {
+            background: #ffac00;
+        }
+
+        td.color6 {
+            background: #ff9400;
+        }
+
+        td.color7 {
+            background: #ff6d00;
+        }
+
+        td.color8 {
+            background: red;
+        }
+
+        td.die {
+            background: gray;
+            width:10%;
+        }
+
+        td.die div.site,td.die div.result{
+            text-align:center;
+        }
+
+        .waferLabel {
+            background: #dddee6;
+            text-align: center;
+            font-size: large;
+            height: 50px;
+            vertical-align: middle;
+            line-height: 50px;
+            position: relative;
+        }
+
+        .ld {
+            float: right;
+            /*display: none;*/
+            position: absolute;
+            top: 0;
+            right: 0;
+        }
+
+        .demo-container {
+            padding: 20px 15px 15px 15px;
+            margin: 15px 20px 30px 20px;
+            border: 1px solid #ddd;
+            background: #fff;
+            background: linear-gradient(#f6f6f6 0, #fff 50px);
+            background: -o-linear-gradient(#f6f6f6 0, #fff 50px);
+            background: -ms-linear-gradient(#f6f6f6 0, #fff 50px);
+            background: -moz-linear-gradient(#f6f6f6 0, #fff 50px);
+            background: -webkit-linear-gradient(#f6f6f6 0, #fff 50px);
+            -o-box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            -ms-box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            -moz-box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            -webkit-box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+            -moz-box-sizing: border-box;
+            -webkit-box-sizing: border-box;
+            box-sizing: border-box;
+        }
+
+        .demo-placeholder {
+            width: 100%;
+            height: 100%;
+            font-size: 14px;
+            line-height: 1.2em;
+        }
+    </style>
+    <script language="javascript" type="text/javascript" src="@Url.Content("~/Scripts/flot/jquery.js")"></script>
+    <script language="javascript" type="text/javascript" src="@Url.Content("~/Scripts/d3.v3.min.js")"><></script>
+    <script language="javascript" type="text/javascript" src="@Url.Content("~/Scripts/flot/jquery.flot.js")"></script>
+    <script language="javascript" type="text/javascript" src="@Url.Content("~/Scripts/flot/jquery.flot.time.js")"></script>
+    <script type="text/javascript">
+        (function ($) {
+            $.fn.waferMap = function (url) {
+                var self = this;
+                self.url = url;
+                self.showDigit = false;
+                var rowNum, colNum, initialized;
+                var tbl = this[0];
+                $.getJSON(self.url).done(function (data) {
+                    rowNum = data.length + 2;
+                    colNum = data[0].length + 2;
+                    var w = 500 / colNum;
+                    for (i = 0; i < rowNum; i++) {
+                        var row = tbl.insertRow(-1);
+                        for (j = 0; j < colNum; j++) {
+                            var cell = row.insertCell(-1);
+                            cell.width = w;
+                        }
+                    }
+                    initialized = true;
+                });
+
+                function updateColor(data) {
+                    for (i = 0; i < rowNum - 2; i++) {
+                        for (j = 0; j < colNum - 2; j++) {
+                            if (data[i][j] > 0) {
+                                tbl.rows[i + 1].cells[j + 1].className = "color" + (data[i][j] > 8 ? 8 : data[i][j]);
+                            } else {
+                                tbl.rows[i + 1].cells[j + 1].className = "";
+                            }
+                            if (self.showDigit && data[i][j] > 3) {
+                                tbl.rows[i + 1].cells[j + 1].innerText = data[i][j] - 3;
+                            }
+                            else {
+                                tbl.rows[i + 1].cells[j + 1].innerText = " ";
+                            }
+                        }
+                    }
+                }
+                self.refresh = function () {
+                    if (initialized) {
+                        if (!self.showDigit) $("#ldwafer").show(); else $("#ldlot").fadeIn(100);
+                        $.getJSON(self.url).done(function (data) {
+                            updateColor(data);
+                            if (!self.showDigit) $("#ldwafer").fadeOut(100); else $("#ldlot").fadeOut(100);
+                        });
+                    }
+                }
+                setInterval(self.refresh, 2000);
+                return this;
+            };
+        }(jQuery));
+
+        $(function () {
+            var wm = $("#wafer").waferMap("@Url.Content("~/api/wafermap")");
+            var lm = $("#lot").waferMap("@Url.Content("~/api/lotmap/?lot=")");
+            lm.showDigit = true;
+
+            var options = {
+                lines: {
+                    show: true
+                },
+                points: {
+                    show: true
+                },
+                grid: {
+                    hoverable: true,
+                    clickable: true
+                },
+                xaxis: {
+                    mode: "time",
+                    timeformat: "%Y/%m/%d %H:%M:%S"
+                },
+                yaxis: {
+                    min: -1.2,
+                    max: 1.2
+                }
+            };
+            var options1 = {
+                lines: {
+                    show: true
+                },
+                points: {
+                    show: true
+                },
+                grid: {
+                    hoverable: true,
+                    clickable: true
+                },
+                xaxis: {
+                    show: false
+                },
+                yaxis: {
+                    min: -1.2,
+                    max: 1.2
+                }
+            };
+
+            function fetchData() {
+                $.getJSON("@Url.Content("~/api/vppdata")").done(
+                        function (data) {
+                            data[0].points = data[1].points = {};
+                            data[0].clickable = data[1].clickable = data[0].hoverable = data[1].hoverable = false;
+                            data[0].points.show = data[1].points.show = false;
+                            $.plot("#placeholder", data, options);
+                        })
+                $.getJSON("@Url.Content("~/api/vppdata/1")").done(
+                function (data) {
+                    if (data.length >= 2) {
+                        data[0].points = data[1].points = {};
+                        data[0].clickable = data[1].clickable = data[0].hoverable = data[1].hoverable = false;
+                        data[0].points.show = data[1].points.show = false;
+                    }
+                    for (var i = 2; i < data.length; i++) {
+                        data[i].data.sort(function (a, b) { return a[0] - b[0]; })
+                    }
+                    $.plot("#placeholder1", data, options1);
+                })
+
+            }
+            $("<div id='tooltip'></div>").css({
+                position: "absolute",
+                display: "none",
+                border: "1px solid #fdd",
+                padding: "2px",
+                "background-color": "#fee",
+                opacity: 0.80
+            }).appendTo("body");
+
+            $("#placeholder,#placeholder1").bind("plothover", function (event, pos, item) {
+                if (item) {
+                    var dieId = item.series.data[item.dataIndex][2];
+                    var tooltip = "Tester: " + item.series.label + "<br />Die ID: " + dieId;
+                    var pnId = item.series.data[item.dataIndex][3];
+                    if (pnId) tooltip += "<br />Pen ID: " + pnId;
+                    var pnDm = item.series.data[item.dataIndex][4] || item.datapoint[0];
+                    if (pnDm) tooltip += "<br />Time: " + pnDm;
+                    var vpp = item.datapoint[1].toFixed(2);
+                    if (vpp) tooltip += "<br />VPP: " + vpp;
+                    $("#tooltip").html(tooltip)
+                        .css({ top: item.pageY + 5, left: item.pageX + 5 })
+                        .fadeIn(200);
+                } else {
+                    $("#tooltip").hide();
+                }
+            });
+            $("#placeholder,#placeholder1").bind("plotclick", function (event, pos, item) {
+                if (item) {
+                    var dieId = item.series.data[item.dataIndex][2];
+
+                    wm.url = "@Url.Content("~/api/wafermap")/?DieId=" + encodeURIComponent(dieId);
+                    wm.refresh();
+                    $("#ddlWafer").val(dieId.substr(0, dieId.length - 8));
+                }
+            });
+            fetchData();
+            setInterval(fetchData, 2000);
+
+            $("#ddlWafer").change(function () {
+                var waferId = $(this).val();
+                wm.url = "@Url.Content("~/api/wafermap")/?WaferId=" + encodeURIComponent(waferId);
+                wm.refresh();
+                //$("#waferid").html(waferId);
+            })
+            @*wm.url = "@Url.Content("~/api/wafermap")/?WaferId=" + encodeURIComponent($("#ddlWafer").val());*@
+
+            $("#ddlLot").change(function () {
+                var lotId = $(this).val();
+                lm.url = "@Url.Content("~/api/lotmap")/?lot=" + lotId;
+                lm.refresh();
+                //$("#lotid").html(lotId);
+            })
+            @*lm.url = "@Url.Content("~/api/lotmap")/" + $("#ddlLot").val();*@
+        });
+
+    </script>
+</head>
+<body>
+    <div>
+        <div>
+            <div style="float:left">
+                <h2>Live Wafer Map Plot</h2>
+                <div class="demo-container">
+                    <div id="waferid" class="waferLabel">
+                        @Html.DropDownList("ddlWafer", (IEnumerable<SelectListItem>)ViewData["WaferList"])
+                        <div id="ldwafer" class="ld" style="display:none"><img width="50" height="50" src="@Url.Content("~/Content/throbber.gif")" /></div>
+                    </div>
+                    <table id="wafer"></table>
+                </div>
+            </div>
+            <div style="float:left">
+                <h2>Live VPP Test Stream</h2>
+                <div class="demo-container" style="width: 850px; height: 587px; ">
+                    <div id="placeholder" class="demo-placeholder"></div>
+                </div>
+            </div>
+        </div>
+        <div style="clear:both">
+            <div style="float:left">
+                <h2>Wafer Lot fault Map</h2>
+                <div class="demo-container">
+                    <div id="lotid" class="waferLabel">
+                        @Html.DropDownList("ddlLot", (IEnumerable<SelectListItem>)ViewData["LotList"])
+                        <div id="ldlot" class="ld" style="display:none"><img width="50" height="50" src="@Url.Content("~/Content/throbber.gif")" /></div>
+                    </div>
+                    <table id="lot"></table>
+                </div>
+            </div>
+            <div style="float: left">
+                <h2>eTester Benchmarking by PenID</h2>
+                <div class="demo-container" style="width: 850px; height: 587px; ">
+                    <div id="placeholder1" class="demo-placeholder"></div>
+                </div>
+            </div>
+        </div>
+        <div style="clear:both;">
+            <div style="float:left">
+                <h2>Bar</h2>
+                <div class="demo-container">
+                    <table id="penBar" style="width: 1390px; height: 100px; " border="1">
+                        <tr><td class="die"></td><td></td><td class="die"></td><td></td><td class="die"></td><td></td><td class="die"></td><td></td><td class="die"></td><td></td></tr>
+                        <tr><td></td><td class="die"></td><td></td><td class="die"></td><td></td><td class="die"></td><td></td><td class="die"></td><td></td><td class="die"></td></tr>
+                    </table>
+                </div>
+            </div>
+            <div style="float:left">
+                <h2>VPP Box plot for Wafers by Etesters</h2>
+                <div class="demo-container">
+                    <iframe src="@Url.Content("~/home/boxplot")" width="1390" height="420" style="border:none"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript">
+        $(function () {
+            var data = [[0,1], [0,1], [0,1], [0,1], [0,1], [0,1], [0,1], [0,1], [0,1], [0,1]];
+            function updateBar (data){
+                var die = d3.select("#penBar").selectAll(".die").data(data);
+                var site = die.selectAll("div.site").data(function(d){return [d];});
+                site.enter().append("div").attr("class", "site");
+                site.text(function (d, i,j) { return "Die" + j; });
+                var result = die.selectAll("div.result").data(function(d){return [d];});
+                result.enter().append("div").attr("class", "result");
+                result.text(function (d, i) { return d[0]+"/" + d[1]; });
+            }
+
+            $.getJSON("@Url.Content("~/api/penmap")").done(function (data) {
+                updateBar(data);
+            })
+        });
+    </script>
+    <script type="text/javascript">
+        $(function () {
+
+            function populateDdl() {
+                $.getJSON("@Url.Content("~/api/ddl")").done(function (data) {
+                    var wafer = $("#ddlWafer").val();
+                    var ddl = $("#ddlWafer").html("");
+                    ddl.append("<option value=''>==Select Wafer==</option>")
+                    data.forEach(function (v) {
+                        ddl.append("<option>" + v + "</option>");
+                    });
+                    ddl.val(wafer);
+                })
+                $.getJSON("@Url.Content("~/api/ddl/1")").done(function (data) {
+                    var lot = $("#ddlLot").val();
+                    var ddl = $("#ddlLot").html("");
+                    ddl.append("<option value=''>==Select Lot==</option>")
+                    data.forEach(function (v) {
+                        ddl.append("<option>" + v + "</option>");
+                    });
+                    ddl.val(lot);
+                })
+            }
+
+            populateDdl();
+            setInterval(populateDdl, 5000);
+        });
+    </script>
+</body>
+</html>
