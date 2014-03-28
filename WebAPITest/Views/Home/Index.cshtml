@@ -367,7 +367,6 @@
     </div>
     <script type="text/javascript">
         $(function () {
-            var data = [[0,1], [0,1], [0,1], [0,1], [0,1], [0,1], [0,1], [0,1], [0,1], [0,1]];
             function updateBar (data){
                 var die = d3.select("#penBar").selectAll(".die").data(data);
                 var site = die.selectAll("div.site").data(function(d){return [d];});
@@ -375,7 +374,8 @@
                 site.text(function (d, i,j) { return "Die" + j; });
                 var result = die.selectAll("div.result").data(function(d){return [d];});
                 result.enter().append("div").attr("class", "result");
-                result.text(function (d, i) { return d[0]+"/" + d[1]; });
+                result.text(function (d, i) { return d[0]+"/" + d[1] + "(" + d3.format(".03%")(d[0]*1.0/d[1]) + ")"; });
+                //result.text(function (d, i) { d3.format("{0:d}/{1:d}({2:.03%)")(d[0], d[1], d[0]*1.0/d[1]); });
             }
 
             $.getJSON("@Url.Content("~/api/penmap")").done(function (data) {

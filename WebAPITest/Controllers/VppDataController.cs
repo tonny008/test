@@ -12,39 +12,54 @@ namespace WebAPITest.Controllers
 {
     public class VppDataController : ApiController
     {
-        public class ObjectPool<T> : IDisposable where T : IDisposable
+        public class ObjectPool
         {
-            private ConcurrentBag<T> _objects;
-            private Func<T> _objectGenerator;
+            private ConcurrentBag<VerticaConnection> _objects;
+            private Func<VerticaConnection> _objectGenerator;
 
-            public ObjectPool(Func<T> objectGenerator)
+            public ObjectPool(Func<VerticaConnection> objectGenerator)
             {
                 if (objectGenerator == null) throw new ArgumentNullException("objectGenerator");
-                _objects = new ConcurrentBag<T>();
+                _objects = new ConcurrentBag<VerticaConnection>();
                 _objectGenerator = objectGenerator;
             }
 
-            public T GetObject()
+            public VerticaConnection GetObject()
             {
-                T item;
-                if (_objects.TryTake(out item)) return item;
+                VerticaConnection item;
+                if (_objects.TryTake(out item))
+                {
+                    if (item.State == System.Data.ConnectionState.Broken)
+                    {
+                        item.Close();
+                        item.Open();
+                    }
+                    if (item.State == System.Data.ConnectionState.Closed)
+                    {
+                        item.Open();
+                    }
+                    return item;
+                };
                 return _objectGenerator();
             }
 
-            public void PutObject(T item)
+            public void PutObject(VerticaConnection item)
             {
-                if (_objects.Count>3)
+                if (_objects.Count > 6)
                 {
                     item.Dispose();
                 }
-                _objects.Add(item);
+                else
+                {
+                    _objects.Add(item);
+                }
             }
 
             public void Dispose()
             {
                 if (_objects != null)
                 {
-                    foreach (T item in _objects)
+                    foreach (VerticaConnection item in _objects)
                     {
                         item.Dispose();
                     }
@@ -53,14 +68,14 @@ namespace WebAPITest.Controllers
             }
         }
 
-        static ObjectPool<VerticaConnection> pool;
-        public static ObjectPool<VerticaConnection> Pool
+        static ObjectPool pool;
+        public static ObjectPool Pool
         {
             get
             {
                 if (pool == null)
                 {
-                    pool = new ObjectPool<VerticaConnection>(() =>
+                    pool = new ObjectPool(() =>
                 {
                     VerticaConnection _conn = new VerticaConnection("Host=shr2-vrt-dev-vglb1.houston.hp.com;Database=shr1_vrt_dev;User=svc_usage_dev;Port=5433;Password=Usage_dev_2013!;Pooling=True;");
                     _conn.Open();

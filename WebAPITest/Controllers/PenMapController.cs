@@ -20,18 +20,19 @@ namespace WebAPITest.Controllers
             var pool = WebAPITest.Controllers.VppDataController.Pool;
             var conn = pool.GetObject();
             var cmd = conn.CreateCommand();
-            cmd.CommandText = @"AT EPOCH LATEST	SELECT A.DIE_SITE_NR,A.FAIL_CT,B.TOTAL_CT
+            cmd.CommandText = @"AT EPOCH LATEST	SELECT B.DIE_SITE_NR,(case when A.FAIL_CT is null then 0 else a.fail_ct end) as fail_ct ,B.TOTAL_CT
 FROM (SELECT DIE_SITE_NR,COUNT(*) FAIL_CT
       FROM USAGE_DEV.ELECJ_POC_WAFER
-      WHERE TEST_RESULT = 'F'
+      WHERE TEST_RESULT = 'F' and die_site_nr is not null
       GROUP BY DIE_SITE_NR
-      )A,
-      
+      )A
+      right join
       (SELECT DIE_SITE_NR,COUNT(*) TOTAL_CT
-      FROM USAGE_DEV.ELECJ_POC_WAFER      
-      GROUP BY DIE_SITE_NR
+      FROM USAGE_DEV.ELECJ_POC_WAFER where die_site_nr is not null
+      GROUP BY DIE_SITE_NR 
       )B
-WHERE A.DIE_SITE_NR = B.DIE_SITE_NR
+      on
+A.DIE_SITE_NR = B.DIE_SITE_NR
 ORDER BY A.DIE_SITE_NR
 ";
             using (var reader = cmd.ExecuteReader())

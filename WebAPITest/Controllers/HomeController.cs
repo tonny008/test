@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Web;
 using System.Web.Mvc;
 using Vertica.Data.VerticaClient;
@@ -51,24 +52,41 @@ namespace WebAPITest.Controllers
         public ActionResult Test()
         {
             ViewBag.Title = "box plot Page";
-            VerticaConnection _conn = new VerticaConnection("Host=shr2-vrt-dev-vglb1.houston.hp.com;Database=shr1_vrt_dev;User=svc_usage_dev;Password=Usage_dev_2013!;Pooling=true;ReadOnly=true;");
+            VerticaConnection _conn; //= new VerticaConnection("Host=shr2-vrt-dev-vglb1.houston.hp.com;Database=shr1_vrt_dev;User=svc_usage_dev;Password=Usage_dev_2013!;Pooling=true;MinPoolSize=5");
             Stopwatch sw = new Stopwatch();
-            sw.Start();
-            _conn.Open();
-            _conn.Close();
-            Debug.WriteLine("first: {0}", sw.Elapsed);
-            sw.Restart();
-            _conn.Open();
-            _conn.Close();
-            Debug.WriteLine("second: {0}", sw.Elapsed);
-            sw.Restart();
-            _conn.Open();
-            _conn.Close();
-            Debug.WriteLine("second: {0}", sw.Elapsed);
-            sw.Restart();
-            _conn.Open();
-            _conn.Close();
-            Debug.WriteLine("second: {0}", sw.Elapsed);
+            var pool = WebAPITest.Controllers.VppDataController.Pool;
+            Parallel.For(0, 50, (i) =>
+            {
+                sw.Restart();
+                _conn = pool.GetObject();
+                var cmd = _conn.CreateCommand();
+                cmd.CommandText = "select * from USAGE_DEV.ELECJ_POC_WAFER limit 100";
+                try
+                {
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            Debug.WriteLine(reader.ToString());
+                        }
+                    }
+                    pool.PutObject(_conn);
+                }
+                catch
+                {
+                    cmd.Connection.Close();
+                    cmd.Connection.Open();
+                    using (var reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            Debug.WriteLine(reader.ToString());
+                        }
+                    }
+                    pool.PutObject(_conn);
+                }
+                Debug.WriteLine("first: {0}", sw.Elapsed);
+            });
             return View();
         }
 
