@@ -1,1 +1,51 @@
-{"info":{"title":"Credit Master","description":"Credit Master API Spec","version":"1.0.0"},"openapi":"3.0.0"}
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Credit Master",
+    "description": "Credit Master API Spec",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/companies": {
+      "get": {
+        "summary": "Get Companies",
+        "description": "This API returns the companies",
+        "parameters": [
+          {
+            "name": "keyword",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemasCompany"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {}
+    }
+  },
+  "components": {
+    "schemas": {
+      "Company": {
+        "title": "Root Type for Company",
+        "description": "The root of the Company type's schema.",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
